@@ -14,9 +14,10 @@ from scipy import stats
 #讀取工卡進度檔(.csv)、回工卡進度需要的欄位資料檔。
 #該檔案請從erp抓取
 def myfunc(path):
-    data = np.array(read_csv(path,low_memory=False))
+    data = np.array(read_csv(path,low_memory=False,header=None))
     heads = np.array(read_csv(path[:-4]+'-head.csv').columns)
     return data, heads
+
 def dataBuild(path):
     data, heads = myfunc(path)
     subheads = ('工卡號','開卡日','染單單號','表頭狀態','開卡量','型體品名','站別', #7個
@@ -26,6 +27,24 @@ def dataBuild(path):
                 )
     inds = [i for i,t in enumerate(heads) if t in subheads]
     return data[:,inds], subheads
+
+def FiberBuild(path):
+    data, heads = myfunc(path)
+    subheads = ('開卡日','胚檢單號','工卡','布疋號','重量','班別','名稱','機台')
+    inds = [i for i,t in enumerate(heads) if t in subheads]
+    return data[:,inds], subheads
+#回傳工卡->使用胚布總重 字典
+def app_fiberDict(data):
+    fiberDict ={}       
+    i0 = 0
+    card = data[0,2]
+    for i,d in enumerate(data):
+        if d[2]!=card:
+            fiberDict[card] = sum(data[i0:i,4])
+            i0 = i
+            card = d[2]
+    fiberDict[card] = sum(data[i0:i,4])
+    return fiberDict
 
 
 #輸入excel檔
@@ -56,6 +75,12 @@ def risk(normal,searchtime,deadline):
         return 100
     else:
         return round((1-stats.norm(normal[0],normal[1]).cdf(lt))*100,1)
+    
+if __name__=='__main__':
+    pathA = r'D:\A90127\AbnormalAnalysis\data\0305月工卡進度.csv'
+    pathF = r'D:\A90127\AbnormalAnalysis\data\0305月工卡胚布.csv'
+    dataA,headA = dataBuild(pathA)
+    dataF,headF = FiberBuild(pathF)
     
     
     

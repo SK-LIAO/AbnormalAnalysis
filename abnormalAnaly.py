@@ -62,7 +62,7 @@ def stepStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific
         else:
             ct = datetime.now()+timedelta(days=ds)
         #只考慮完成時間點在統計時間的起迄範圍內的工卡
-        if ct>=tmS and ct<tmE:
+        if ct>=tmS.replace(hour=8) and ct<tmE.replace(hour=8):
             #改站點字典存入生產 工卡號、染單號、開卡種
             stepdict[d[6]].inner += [ [d[0],d[2],d[4]] ]
             if NGtype == '效能':
