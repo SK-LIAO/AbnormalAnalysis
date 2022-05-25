@@ -14,14 +14,20 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from stepAnaly import myStrptime, isdata
-from readme import step_ch
+from readme import step_ch, step_air
 #急件工時預估字典、仔細做的話應該要是函數
 from mydict import Urgentdict
 
               
     #統計在某個特定時間點存放的工卡總量
     #輸入 月m(7~9)、日d(1~31)、時hr(0~23) 回傳各站點: 待加工卡 重量 剩餘工作天數 
-def stepStatic(dati,data,specific='',restep='',ra=False):
+def stepStatic(dati,data,specific='',restep='',ra=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #拉出特定品項數據資料
     if len(specific)>0:
         data = np.array([d for d in data if specific == d[5]])
@@ -33,14 +39,18 @@ def stepStatic(dati,data,specific='',restep='',ra=False):
         def __init__(self,name):
             self.name = name
             self.inner = []
-            steps.inner +=  [self]           
-    chs = step_ch + ['全廠']
+            steps.inner +=  [self]
+    if factor==0:
+        chs = step_ch + ['全廠']
+    else:
+        chs = step_air + ['ALL']
     stepdict = {}
     for ch in chs:
         stepdict[ch] = steps(ch)
     
     def classify(mat):
         tnow = myStrptime(mat[0,1],805)
+        tnext = ''
         for i,d in enumerate(mat):
             if tnow:
                 if isdata(d[7]) and isdata(d[8]):
@@ -72,9 +82,13 @@ def stepStatic(dati,data,specific='',restep='',ra=False):
 
     #全廠不能重複計算
     for s in steps.inner[:-1]:
-        stepdict['全廠'].inner += s.inner
+        if factor==0:
+            stepdict['全廠'].inner += s.inner
+        else:
+            stepdict['ALL'].inner += s.inner
     if ra:
         return steps.inner
+    
     for s in steps.inner:
         if restep == s.name:
             return s.inner
@@ -84,7 +98,13 @@ def stepStatic(dati,data,specific='',restep='',ra=False):
                
 #給定數據data 回傳在時間起timestart 迄timeend內
 #各個加工站點內待加工的 工卡號 重量 時間點是否存在的bool序列
-def staticGraph(timestart,timeend,data,specific=''):   
+def staticGraph(timestart,timeend,data,specific='',factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #拉出特定品項數據資料
     if len(specific)>0:
         data = np.array([d for d in data if specific == d[5]])
@@ -95,8 +115,11 @@ def staticGraph(timestart,timeend,data,specific=''):
         def __init__(self,name):
             self.name = name
             self.inner = []
-            steps.inner +=  [self]           
-    chs = step_ch + ['全廠']
+            steps.inner +=  [self] 
+    if factor==0:
+        chs = step_ch + ['全廠']
+    else:
+        chs = step_air+['ALL']
     stepdict = {}
     for ch in chs:
         stepdict[ch] = steps(ch)
@@ -107,6 +130,7 @@ def staticGraph(timestart,timeend,data,specific=''):
     def classify(mat):
         #建立開卡時間
         tnow = myStrptime(mat[0,1],805)
+        tnext =''
         #建立有刷卡紀錄站點
         testmat = [d for d in mat if isdata(d[7]) and isdata(d[8])]
         if len(testmat)==0 or mat[0,3] not in ['結案','強迫結案']:
@@ -120,8 +144,10 @@ def staticGraph(timestart,timeend,data,specific=''):
             if tnow<=t<tend:
                 mark[i] = 1
         if sum(mark)>0:
-            stepdict['全廠'].inner += [ [mat[0,0],mat[0,2],mat[0,4],mark] ]
-   
+            if factor==0:
+                stepdict['全廠'].inner += [ [mat[0,0],mat[0,2],mat[0,4],mark] ]
+            else:
+                stepdict['ALL'].inner += [ [mat[0,0],mat[0,2],mat[0,4],mark] ]
         for d in mat:
             mark = np.zeros(n_hrs)
             if tnow:

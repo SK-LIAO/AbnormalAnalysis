@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 
 import abnormalAnaly as aA
 from app_GUI import GUI
-from readme import frame_styles, step_en, step_ch
+from readme import frame_styles, step_en, step_ch,step_air
 from tkcalendar import DateEntry #日曆模組
 
 class abnormalPage(GUI):
@@ -29,7 +29,7 @@ class abnormalPage(GUI):
         frame2 = tk.LabelFrame(self, frame_styles, text="生產走勢")
         frame2.place(relx=0.1, rely=0.02, height=550, width=202)
         frame3 = tk.LabelFrame(frame2, frame_styles, text="生產異常統計")
-        frame3.place(relx=0.01, rely=0.27, height=382, width=192)
+        frame3.place(relx=0.01, rely=0.27, height=383, width=192)
         
         tv1 = ttk.Treeview(frame1,selectmode='browse')#建立資料數
         column_list_account = ['生產站點','生產量(kg)','異常量(kg)','百分比(%)']
@@ -44,51 +44,58 @@ class abnormalPage(GUI):
         tv1.place(relheight=0.995, relwidth=0.995)
         
             
+        self.var1 = tk.IntVar()
+        Radiobutton1 = tk.Radiobutton(frame2,text='斗工(水)',variable=self.var1,value=0)
+        Radiobutton2 = tk.Radiobutton(frame2,text='雲科(氣)',variable=self.var1,value=1)
+        Radiobutton1.grid(column=0,row=0,sticky='ew')
+        Radiobutton2.grid(column=1,row=0,sticky='w')
+        self.var1.set(0)
+        
         Label1 = tk.Label(frame2,text='日期(起)')
-        Label1.grid(column=0,row=0,sticky='ew')
+        Label1.grid(column=0,row=1,sticky='ew')
         Button1_1 = DateEntry(frame2, width=13, background='darkblue',
                     foreground='white', borderwidth=3)
         Button1_1.set_date(datetime.now()-timedelta(days=1))
-        Button1_1.grid(column=1,row=0,sticky='w')
+        Button1_1.grid(column=1,row=1,sticky='w')
         
         
         Label2 = tk.Label(frame2,text='日期(迄)')
-        Label2.grid(column=0,row=1,sticky='ew')
+        Label2.grid(column=0,row=2,sticky='ew')
         Button2_1 = DateEntry(frame2, width=13, background='darkblue',
                     foreground='white', borderwidth=3)
-        Button2_1.grid(column=1,row=1,sticky='w')
+        Button2_1.grid(column=1,row=2,sticky='w')
         
         Label5 = tk.Label(frame2,text='指定型體')
-        Label5.grid(column=0,row=2,sticky='ew')
+        Label5.grid(column=0,row=3,sticky='ew')
         self.var4 = tk.StringVar()
         self.var4.set('')
-        self.Entry5_1 = tk.Entry(frame2,textvariable=self.var4,width=19)
-        self.Entry5_1.grid(column=1,row=2,sticky='nsw')
+        self.Entry5_1 = tk.Entry(frame2,textvariable=self.var4,width=17)
+        self.Entry5_1.grid(column=1,row=3,sticky='w')
         
         button3 = tk.Button(frame2,text="繪製圖表", command = lambda: graph())
-        button3.grid(column=0,row=3)
+        button3.grid(column=0,row=4,sticky='ew')
         
         Label3 = tk.Label(frame3,text='NG類型')
-        Label3.grid(column=0,row=0,sticky='ew')
+        Label3.grid(column=0,row=1,sticky='ew')
         self.var2 = tk.StringVar()
         self.Combobox3_1 = ttk.Combobox(frame3,textvariable=self.var2,
                                    values = ['效能/結果','效能/原因','品管/結果','品管/原因'],
                                    width=13,state="readonly")
         self.Combobox3_1.current(0)
-        self.Combobox3_1.grid(column=1,row=0,sticky='w')
+        self.Combobox3_1.grid(column=1,row=1,sticky='ew')
         
         Label4 = tk.Label(frame3,text='已結案')
-        Label4.grid(column=0,row=1,sticky='ew')
+        Label4.grid(column=0,row=2,sticky='ew')
         self.var3 = tk.StringVar()
         self.Combobox4_1 = ttk.Combobox(frame3,textvariable=self.var3,
                                    values = ['否','是'],width=13,state="readonly")
         self.Combobox4_1.current(1)
-        self.Combobox4_1.grid(column=1,row=1,sticky='w')
+        self.Combobox4_1.grid(column=1,row=2,sticky='w')
         
         button1 = tk.Button(frame3,text="各站統計", command = lambda: each())
-        button1.grid(column=0,row=2)
+        button1.grid(column=0,row=3,sticky='ew')
         button2 = tk.Button(frame3,text="全站統計", command = lambda: total())
-        button2.grid(column=0,row=3)
+        button2.grid(column=0,row=4,sticky='ew')
         
         
         def graph():
@@ -97,7 +104,7 @@ class abnormalPage(GUI):
             ds = (b-a).days
             self.timelist = [a + timedelta(days=i) for i in range(ds)]
             specific = self.var4.get()
-            self.allstatic = aA.prodGraph(a,b,controller.data,specific)
+            self.allstatic = aA.prodGraph(a,b,controller.data,specific,self.var1.get())
             abnormalGraph(self,controller)
             
         self.static = 0
@@ -110,7 +117,8 @@ class abnormalPage(GUI):
             NGtypeClass = 0 if self.var2.get()[-2:]=='結果' else 1
             finish = True if self.var3.get()=='是' else False
             specific = self.var4.get()
-            self.static = aA.stepStatic(a,controller.data,ds,NGtype,NGtypeClass,finish,specific,'',ra=True)
+            self.static = aA.stepStatic(a,controller.data,ds,NGtype,NGtypeClass,finish,
+                                        specific,'',True,self.var1.get())
             data =[ [s.name, 
                     round(sum([i[2] for i in s.inner]),1),
                     round(sum([i[2] for i in s.abnormal]),1),
@@ -127,7 +135,8 @@ class abnormalPage(GUI):
             NGtypeClass = 0 if self.var2.get()[-2:]=='結果' else 1
             finish = True if self.var3.get()=='是' else False
             specific = self.var4.get()
-            self.static = aA.totalStatic(a,controller.data,ds,NGtype,NGtypeClass,finish,specific,'',ra=True)
+            self.static = aA.totalStatic(a,controller.data,ds,NGtype,NGtypeClass,finish,
+                                         specific,'',True,self.var1.get())
             data =[ [s.name, 
                     round(sum([i[2] for i in s.inner]),1),
                     round(sum([i[2] for i in s.abnormal]),1),
@@ -219,9 +228,12 @@ class abnormalGraph(tk.Toplevel):
         f_plot = f.add_subplot(111)
         canvs = FigureCanvasTkAgg(f, frame1)
         canvs.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        
-        chs = ['開卡']+step_ch
-        ens = ['New Cards']+step_en
+        if parent.var1.get()==0:
+            chs = ['開卡']+step_ch
+            ens = ['New Cards']+step_en
+        else:
+            chs = ['NEW'] + step_air
+            ens = ['New Cards'] + step_air
         #加工站點數
         m = len(parent.allstatic)
         #日期天數

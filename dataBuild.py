@@ -26,7 +26,12 @@ def dataBuild(path):
                 '異常代碼3','處理狀態','重下胚量','下染量','入庫重量', #4個
                 )
     inds = [i for i,t in enumerate(heads) if t in subheads]
-    return data[:,inds], subheads
+    data = data[:,inds]
+    #拔掉很詭異的加工時間 ex 1900/1/1等
+    t = dt(2010,1,1)
+    data = np.array([d for d in data if not isdata(d[7]) or myStrptime(d[7])>t ])
+    
+    return data, subheads
 
 def FiberBuild(path):
     data, heads = myfunc(path)
@@ -77,8 +82,8 @@ def risk(normal,searchtime,deadline):
         return round((1-stats.norm(normal[0],normal[1]).cdf(lt))*100,1)
     
 if __name__=='__main__':
-    pathA = r'D:\A90127\AbnormalAnalysis\data\0305月工卡進度.csv'
-    pathF = r'D:\A90127\AbnormalAnalysis\data\0305月工卡胚布.csv'
+    pathA = r'D:\A90127\AbnormalAnalysis2.0\data\0305月工卡進度.csv'
+    pathF = r'D:\A90127\AbnormalAnalysis2.0\data\0305月工卡胚布.csv'
     dataA,headA = dataBuild(pathA)
     dataF,headF = FiberBuild(pathF)
     

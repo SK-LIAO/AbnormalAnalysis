@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, time
 
 import stepAnaly as sA
 from app_GUI import GUI
-from readme import frame_styles
+from readme import frame_styles, step_ch, step_air
 from tkcalendar import DateEntry #日曆模組
 
 class stepPage(GUI):
@@ -24,13 +24,13 @@ class stepPage(GUI):
         frame2 = tk.LabelFrame(self, frame_styles, text="共同參數")
         frame2.place(relx=0.1, rely=0.02, height=550, width=227)
         frame3 = tk.LabelFrame(frame2, frame_styles, text="計算前後站點比例")
-        frame3.place(relx=0.02, rely=0.095, height=100, width=213)
+        frame3.place(relx=0.02, rely=0.15, height=102, width=213)
         frame4 = tk.LabelFrame(frame2, frame_styles, text="總加工時間統計")
-        frame4.place(relx=0.02, rely=0.3, height=365, width=213)
+        frame4.place(relx=0.02, rely=0.35, height=340, width=213)
         frame5 = tk.LabelFrame(frame4, frame_styles, text="各站加工時間統計")
-        frame5.place(relx=0.02, rely=0.16, height=284, width=200)
+        frame5.place(relx=0.02, rely=0.15, height=268, width=200)
         frame6 = tk.LabelFrame(frame5, frame_styles, text="查詢滯留工卡")
-        frame6.place(relx=0.02, rely=0.3, height=179, width=187)
+        frame6.place(relx=0.02, rely=0.3, height=170, width=187)
         
         
         tv1 = ttk.Treeview(frame1,selectmode='browse')#建立資料數
@@ -56,21 +56,30 @@ class stepPage(GUI):
         ytreescroll = tk.Scrollbar(frame1)
         ytreescroll.configure(command=tv1.yview)
         tv1.configure(yscrollcommand=ytreescroll.set)
-        ytreescroll.pack(side="right", fill="y")           
+        ytreescroll.pack(side="right", fill="y")
+
+        self.var6 = tk.IntVar()
+        Radiobutton2_1 = tk.Radiobutton(frame2,text='斗工(水)',variable=self.var6,value=0,
+                                        command=lambda: changeFactor())
+        Radiobutton2_2 = tk.Radiobutton(frame2,text='雲科(氣)',variable=self.var6,value=1,
+                                        command=lambda: changeFactor())
+        Radiobutton2_1.grid(column=0,row=0,sticky='ew')
+        Radiobutton2_2.grid(column=1,row=0,sticky='w')
+        self.var6.set(0)           
         
         pm = datetime.now()-timedelta(days=30)            
         Label1 = tk.Label(frame2,text='日期(起)')
-        Label1.grid(column=0,row=0,sticky='ew')
+        Label1.grid(column=0,row=1,sticky='ew')
         Button1_1 = DateEntry(frame2, width=13, background='darkblue',
                     foreground='white', borderwidth=3,
                     year=pm.year, month=pm.month, day=pm.day)
-        Button1_1.grid(column=1,row=0,sticky='w')
+        Button1_1.grid(column=1,row=1,sticky='w')
         
         Label2 = tk.Label(frame2,text='日期(迄)')
-        Label2.grid(column=0,row=1,sticky='ew')
+        Label2.grid(column=0,row=2,sticky='ew')
         Button2_1 = DateEntry(frame2, width=13, background='darkblue',
                     foreground='white', borderwidth=3)
-        Button2_1.grid(column=1,row=1,sticky='w')
+        Button2_1.grid(column=1,row=2,sticky='w')
         
         Label3 = tk.Label(frame6,text='滯留天數')
         Label3.grid(column=0,row=2,sticky='ew')
@@ -102,8 +111,10 @@ class stepPage(GUI):
         Label6 = tk.Label(frame3,text='站點')
         Label6.grid(column=0,row=0,sticky='ew')
         self.var4 = tk.StringVar()
-        steps = ['胚倉','前定','前品','染色','中檢','定型','品驗','對色','驗布', '烘乾',
-         '配布','精煉','釘邊','中檢2','品驗2','驗布2','烘乾2','包裝']
+        if self.var6.get()==0:
+            steps = step_ch
+        else:
+            steps = step_air        
         self.Combobox6_1 = ttk.Combobox(frame3,textvariable=self.var4,
                                    values = steps,width=13,state="readonly")
         self.Combobox6_1.current()
@@ -126,6 +137,12 @@ class stepPage(GUI):
         button6 = tk.Button(frame6,text="滯留工卡", command = lambda: staycard())
         button6.grid(column=0,row=5)
         
+        def changeFactor():
+            if self.var6.get()==0:
+                steps = step_ch
+            else:
+                steps = step_air
+            self.Combobox6_1.configure(value=steps)
         
         self.static = 0
         def forestep():
@@ -149,6 +166,18 @@ class stepPage(GUI):
             data = sA.prodBackStep(startdate,step,controller.data,ds,True)
             for row in data:
                 tv1.insert("", 'end', values=row)
+        
+        def total():
+            Refresh()
+            Retitle(['平均時間(天)','標準差(天)'])
+            startdate = datetime.combine(Button1_1.get_date(), time())
+            enddate = datetime.combine(Button2_1.get_date(),time())
+            ds = (enddate-startdate).days
+            specific = self.var3.get()
+            data = sA.avgProdDays(startdate, controller.data, ds, specific, True, self.var6.get())
+            avg = round(np.average([d[1] for d in data]),1)
+            std = round(np.std([d[1] for d in data]),1)
+            tv1.insert('', 'end', values=[avg,std])
             
         def each():
             Refresh()
@@ -157,32 +186,21 @@ class stepPage(GUI):
             enddate = datetime.combine(Button2_1.get_date(),time())
             ds = (enddate-startdate).days            
             specific = self.var3.get()
-            self.static = sA.stepStatic(startdate,controller.data,ds,fidict[self.var2.get()],specific,ra=True)
+            self.static = sA.stepStatic(startdate,controller.data,ds,fidict[self.var2.get()],
+                                        specific,True,self.var6.get())
             data =[ [s.name, 
                     round(np.average([i[0]+i[1]/24/60/60 for i in s.dt]),1),
                     round(np.std([i[0]+i[1]/24/60/60 for i in s.dt]),1)] for s in self.static if len(s.inner)>0] 
             for row in data:
                 tv1.insert("", 'end', values=row)
             
-        def total():
-            Refresh()
-            Retitle(['平均時間(天)','標準差(天)'])
-            startdate = datetime.combine(Button1_1.get_date(), time())
-            enddate = datetime.combine(Button2_1.get_date(),time())
-            ds = (enddate-startdate).days
-            specific = self.var3.get()
-            data = sA.avgProdDays(startdate,controller.data,ds,specific,True)
-            avg = round(np.average([d[1] for d in data]),1)
-            std = round(np.std([d[1] for d in data]),1)
-            tv1.insert('', 'end', values=[avg,std])
             
-
         def maxday():
             startdate = datetime.combine(Button1_1.get_date(), time())
             enddate = datetime.combine(Button2_1.get_date(),time())
             ds = (enddate-startdate).days
             specific = self.var3.get()
-            ch = sA.maxProdDays(startdate,controller.data,ds,fidict[self.var2.get()],specific,ra=True)
+            ch = sA.maxProdDays(startdate,controller.data,ds,fidict[self.var2.get()],specific,True,self.var6.get())
             self.var5.set(round(ch,1))
             
         def staycard():
@@ -193,7 +211,8 @@ class stepPage(GUI):
             ds = (enddate-startdate).days
             stayd = self.var1.get()
             specific = self.var3.get()
-            self.static = sA.prodStay(startdate,stayd,controller.data,ds,fidict[self.var2.get()],specific,True)
+            self.static = sA.prodStay(startdate,stayd,controller.data,ds,fidict[self.var2.get()],
+                                      specific,True,self.var6.get())
             for row in self.static:
                 tv1.insert("", 'end', values=row)
                      

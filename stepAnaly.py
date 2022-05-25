@@ -9,12 +9,15 @@ Created on Thu Oct 28 11:54:09 2021
 import numpy as np
 from datetime import datetime, timedelta
 
-from readme import step_ch
+from readme import step_ch, step_air
 from dataBuild import myStrptime, isdata
 '''
-#加工站
+#水染加工站
 steps = ['胚倉','前定','前品','染色','中檢','定型','品驗','對色','驗布', '烘乾',
          '配布','精煉','釘邊','剝色','配布2','中檢2','品驗2','驗布2','烘乾2','包裝']
+
+#氣染加工站
+step_air = ['BO','BW','CP','CT','DC','DI','DI2','DP','HO','HP','OQC','PF','PS','RR','SQC']
 '''
 
 #給定起始時間 year年 mon月 day日, 
@@ -62,8 +65,13 @@ def prodBackStep(dati,Step,data,ds=0,ra=False):
 #finish: 是否結案 
 #specific: 指定品項名稱(預設不指定)
 #ra: 是否回傳給app 
-def maxProdDays(dati,data,ds=0,finish=0,specific='',ra=False):
-    
+def maxProdDays(dati,data,ds=0,finish=0,specific='',ra=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #刪除作廢工卡
     data = np.array([i for i in data if i[3]!='作廢'])
     if specific != '':
@@ -94,7 +102,13 @@ def maxProdDays(dati,data,ds=0,finish=0,specific='',ra=False):
         return m.days+m.seconds/86400
     print('工卡停留最大時間: {.:2f}days'.format(m.days+m.seconds/86400))
 #秀出裡加工時間大於x天工卡數
-def prodStay(dati,x,data,ds=0,finish=0,specific='',ra=False):
+def prodStay(dati,x,data,ds=0,finish=0,specific='',ra=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     
     #刪除作廢工卡
     data = np.array([i for i in data if i[3]!='作廢'])
@@ -154,7 +168,13 @@ def prodStay(dati,x,data,ds=0,finish=0,specific='',ra=False):
 #計算給定時間 year month day 數據 data,統計ds(預設1)天內且順利(即轉卡不計算)包裝完成工卡的
 #1.總加工時間的平均值 2.總加工時間的標準差     
 #specific: 指定品項(預設無指定)
-def avgProdDays(dati,data,ds=0,specific='',re=False):
+def avgProdDays(dati,data,ds=0,specific='',re=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #刪除作廢工卡
     data = np.array([d for d in data if d[3]!='作廢'])
     #拉出特定品項數據資料
@@ -171,7 +191,7 @@ def avgProdDays(dati,data,ds=0,specific='',re=False):
     CDs = []
     for d in data:
         #只統計有做到包裝的站點且非轉卡
-        if isdata(d[7]) and isdata(d[8]) and d[6]=='包裝' and len(d[0])==10:
+        if isdata(d[7]) and isdata(d[8]) and d[6] in ['包裝','PF'] and len(d[0])==10:
             st = myStrptime(d[1],800)
             et = myStrptime(d[7],d[8])
             CDs += [ (d[0],(et-st).days+(et-st).seconds/(24*60*60)) ]
@@ -182,7 +202,13 @@ def avgProdDays(dati,data,ds=0,specific='',re=False):
         print('每張工卡加工時間\n平均    {:.1f}天\n標準差  {:.1f}天'.format(np.average(SD),np.std(SD)))
 #計算給定時間 year month day 數據 data,統計ds(預設1)天內所開工卡的各站點
 #1.停留時間的平均值 2.停留時間的標準差   
-def stepStatic(dati,data,ds=0,finish=0,specific='',ra=False):
+def stepStatic(dati,data,ds=0,finish=0,specific='',ra=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #拉出特定品項數據資料
     if specific != '':
         data = np.array([d for d in data if specific == d[5]])
@@ -193,8 +219,12 @@ def stepStatic(dati,data,ds=0,finish=0,specific='',ra=False):
             self.inner = [] #生產工卡
             self.dt = []
             steps.inner +=  [self]
+    if factor == 0:
+        stepname = step_ch
+    else:
+        stepname = step_air
     stepdict={}
-    for ch in step_ch:
+    for ch in stepname:
         stepdict[ch] = steps(ch)
     
     #刪除作廢工卡 且 拉出有加工時間紀錄數據列

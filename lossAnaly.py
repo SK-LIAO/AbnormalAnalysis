@@ -10,17 +10,22 @@ from dataBuild import isdata
 from mydict import NG2Lossdict
 import matplotlib.pyplot as plt
 
-def normalLoss(data,shoetype=True):
+def normalLoss(data,shoetype=True,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #建立開有異常單資料
     abnormal = np.array([d for d in data if isdata(d[12])])
     
     #不統計轉卡 與 未結案工卡 只需過濾出包裝欄位即可
-    data = np.array([d for d in data if d[6]=='包裝' and len(d[0])==10
+    data = np.array([d for d in data if d[6] in ['包裝','PF'] and len(d[0])==10
                     and d[3] not in ['新增','核准','作廢']])
     #只考慮進良品倉量
     data = np.array([d for d in data if isdata(d[23])])
     
-       
     def NGeffect(c):
         if c not in abnormal[:,0]:
             return False
@@ -72,6 +77,14 @@ def exp_regre(x,y):
 def log_regre(x,y):
     x = np.log(x)
     return lin_regre(x,y)
+
+#迴歸公式 y = a/x + b
+#給定陣列 x 及 y
+#回傳其回歸係數 a, b
+def reciprocal_regre(x,y):
+    x = 1/np.sqrt(x)
+    return lin_regre(x,y)
+
 
 def piecewiseLoss(x,y,int_num,std_num):
     I = np.linspace(min(x), max(x),num=int_num, endpoint=True)

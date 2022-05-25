@@ -30,6 +30,8 @@ step_en = ['Fiber Store', 'Prior Fixed','Prior Fabric','Dyeing','Mid Examining',
            'Clothes Assignment','Refining','Edge Nailing','Color Peeling','Clothes Assignment 2',
            'Mid Examining 2','Fabric Examining 2','Clothes Examining 2','Drying 2','Package']
 
+step_air = ['BO','BO2','BW','BW2','CP','CT','DC','DC2','DI','DI2','DP','DP2','HO','HP','OQC','PF','PS','RR','SQC']
+
 NG_type1 = ['色差','物性','布面','製程','廠內','其他']
 NG_type2 = ['色差','物性','布面','廠內NG','鞋型不符','螢光汙染','色花/色不均',
             '單絲直條/胚布直條','其他']

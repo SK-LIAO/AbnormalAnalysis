@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 from dataBuild import  myStrptime, isdata
 from mydict import NGdict, NGclass
-from readme import step_ch, NG_type1, NG_type2
+from readme import step_ch, NG_type1, NG_type2, step_air
 
 #統計某日時dati起 ds天內 無效生產量與無效生產率
 #finish:是否只考慮已完成工卡
@@ -21,7 +21,13 @@ from readme import step_ch, NG_type1, NG_type2
 #       1:依照異常原因, ['色差','物性','布面','廠內NG','鞋型不符',
 #                        '螢光汙染','色花/色不均','單絲直條/胚布直條','其他']
 #ra : 是否回傳app所需資料(GUI 專用)
-def stepStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific='',restep='',ra=False):
+def stepStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific='',restep='',ra=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     class steps:
         inner = []
         def __init__(self,name):
@@ -29,10 +35,13 @@ def stepStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific
             self.inner = [] #生產工卡
             self.abnormal = [] #異常工卡
             steps.inner +=  [self]
-    
+    if factor==0:
+        step = step_ch
+    else:
+        step = step_air
     #中文站點名對應到該站點類
     stepdict = {} 
-    for n in step_ch:
+    for n in step:
         stepdict[n] = steps(n)
     #指定型體品名時資料
     if len(specific)>0:
@@ -88,7 +97,13 @@ def stepStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific
             print(s.name+'生產量: ',round(a,1),'kg  異常量: ',round(b,1),'kg 佔生產量: ',round(b/a*100,1),'% ')
        
 
-def totalStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific='',restep='',ra=False):
+def totalStatic(dati,data,ds=1,NGtype='效能',NGtypeClass=0,finish=True,specific='',restep='',ra=False,factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     class steps:
         inner = []
         def __init__(self,name):
@@ -356,7 +371,13 @@ def NGanaly(s,reclass='',ra=False):
 
 #給定日期起datestart 日期迄dateend 數據data
 #回傳各加工站點當天早上8點到隔天早上8點的 完成工卡、開卡量、起始時間起第dds天完成
-def prodGraph(datestart,dateend,data,specific=''):
+def prodGraph(datestart,dateend,data,specific='',factor=0):
+    #只拉斗工廠工卡數據
+    if factor==0: 
+        data = np.array([d for d in data if d[0][0]=='E'])
+    #只拉雲科廠工卡數據
+    else:
+        data = np.array([d for d in data if d[0][0]=='P'])
     #建立各站點數據袋
     class steps:
         inner = []
@@ -364,8 +385,11 @@ def prodGraph(datestart,dateend,data,specific=''):
             self.name = name
             self.inner = [] #生產工卡
             steps.inner +=  [self]
-    #中文站點名稱        
-    chs = ['開卡']+step_ch
+    if factor==0:
+        #中文站點名稱        
+        chs = ['開卡']+step_ch
+    else:
+        chs = ['NEW']+step_air
     #中文站點名對應到該站點類
     stepdict = {} 
     for n in chs:
@@ -383,7 +407,10 @@ def prodGraph(datestart,dateend,data,specific=''):
     def classify(mat):
         dds = (myStrptime(mat[0,1])-datestart).days
         if 0<=dds<days:
-            stepdict['開卡'].inner += [ [mat[0,0],mat[0,2],mat[0,4],dds] ]
+            if factor==0:
+                stepdict['開卡'].inner += [ [mat[0,0],mat[0,2],mat[0,4],dds] ]
+            else:
+                stepdict['NEW'].inner += [ [mat[0,0],mat[0,2],mat[0,4],dds] ]
         for d in mat:
             if isdata(d[7]) and isdata(d[8]):
                 et = myStrptime(d[7],d[8])

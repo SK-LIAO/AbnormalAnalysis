@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 import dataBuild as dB
 import waitAnaly as wA
 from app_GUI import GUI
-from readme import frame_styles, step_en, step_ch
+from readme import frame_styles, step_en, step_ch, step_air
 from tkcalendar import DateEntry #日曆模組
 
 class waitPage(GUI):
@@ -29,7 +29,7 @@ class waitPage(GUI):
         frame2 = tk.LabelFrame(self, frame_styles, text="站點待生產")
         frame2.place(relx=0.1, rely=0.02, height=550, width=202)
         frame3 = tk.LabelFrame(frame2, frame_styles, text="站點走勢圖")
-        frame3.place(relx=0.01, rely=0.27, height=382, width=192)   
+        frame3.place(relx=0.01, rely=0.27, height=383, width=192)   
         
         
         self.tv = ttk.Treeview(frame1,selectmode='browse')#建立資料數
@@ -48,14 +48,21 @@ class waitPage(GUI):
         tv.bind('<Double-1>', checkdata) #雙擊檢視詳細資料
         tv.place(relheight=0.995, relwidth=0.995)
         
+        self.var3 = tk.IntVar()
+        Radiobutton2_1 = tk.Radiobutton(frame2,text='斗工(水)',variable=self.var3,value=0)
+        Radiobutton2_2 = tk.Radiobutton(frame2,text='雲科(氣)',variable=self.var3,value=1)
+        Radiobutton2_1.grid(column=0,row=0,sticky='ew')
+        Radiobutton2_2.grid(column=1,row=0,sticky='w')
+        self.var3.set(0)
+        
         Label1 = tk.Label(frame2,text='日期')
-        Label1.grid(column=0,row=0,sticky='ew')
+        Label1.grid(column=0,row=1,sticky='ew')
         Button1_1 = DateEntry(frame2, width=13, background='darkblue',
                     foreground='white', borderwidth=3)
-        Button1_1.grid(column=1,row=0,sticky='w')
+        Button1_1.grid(column=1,row=1,sticky='w')
         
         Label2 = tk.Label(frame2,text='時間')
-        Label2.grid(column=0,row=1,sticky='ew')
+        Label2.grid(column=0,row=2,sticky='ew')
         self.timedict = {}
         times = ['00:00','01:00','02:00','03:00','04:00','05:00',
                  '06:00','07:00','08:00','09:00','10:00','11:00',
@@ -68,18 +75,18 @@ class waitPage(GUI):
                                    values = times,
                                    width=13,state="readonly")
         self.Combobox2_1.current(8)
-        self.Combobox2_1.grid(column=1,row=1,sticky='w')
+        self.Combobox2_1.grid(column=1,row=2,sticky='w')
 
      
         Label3 = tk.Label(frame2,text='指定型體')
-        Label3.grid(column=0,row=2,sticky='ew')
+        Label3.grid(column=0,row=3,sticky='ew')
         self.var4 = tk.StringVar()
         self.var4.set('')
-        self.Entry5_1 = tk.Entry(frame2,textvariable=self.var4,width=19)
-        self.Entry5_1.grid(column=1,row=2,sticky='nsw')
+        self.Entry5_1 = tk.Entry(frame2,textvariable=self.var4,width=17)
+        self.Entry5_1.grid(column=1,row=3,sticky='nsw')
         
         button1 = tk.Button(frame2,text="各站統計", command = lambda: each())
-        button1.grid(column=0,row=3)
+        button1.grid(column=0,row=4,sticky='ew')
         
         Label3 = tk.Label(frame3,text='日期(迄)')
         Label3.grid(column=0,row=0,sticky='ew')
@@ -112,7 +119,9 @@ class waitPage(GUI):
             dt = timeend - timestart
             n_hrs = int(dt.days*24 + dt.seconds/60/60)
             self.timelist = [timestart+timedelta(hours=i) for i in range(n_hrs)]
-            self.allstatic = wA.staticGraph(timestart,timeend,controller.data,specific)
+            self.allstatic = wA.staticGraph(timestart,timeend,controller.data,
+                                            specific,self.var3.get())
+            
             waitGraph(self,controller)
         
         
@@ -123,7 +132,8 @@ class waitPage(GUI):
             #時間(整數)
             ti = self.timedict[self.var1.get()]
             specific = self.var4.get()
-            self.static = wA.stepStatic(da.replace(hour=ti),controller.data,specific,'',ra=True)
+            self.static = wA.stepStatic(da.replace(hour=ti),controller.data,
+                                        specific,'',True,self.var3.get())
             data =[ [s.name,round(sum([i[2] for i in s.inner]),1), len(s.inner)] 
                    for s in self.static] 
             for row in data:
@@ -235,12 +245,16 @@ class waitGraph(tk.Toplevel):
                 cdf = mpl.dates.ConciseDateFormatter(f_plot.xaxis.get_major_locator())
                 f_plot.xaxis.set_major_formatter(cdf)
                 canvs.draw()
-        chs = step_ch+['全廠']
-        ens = step_en+['All Clothes']
+        if parent.var3.get()==0:
+            chs = step_ch+['全廠']
+            ens = step_en+['All Clothes']
+        else:
+            chs = step_air + ['ALL']
+            ens = step_air + ['ALL']
         stepdict={}
         for i,s in enumerate(chs):
             stepdict[s] = gif(graphdata[i],ens[i])
-        
+
         A = [stepdict[i].plot for i in chs]
         B = [s.name for s in parent.allstatic]
         for i,(a,b) in enumerate(zip(A[:11],B[:11])):
