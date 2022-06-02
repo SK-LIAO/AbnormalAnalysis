@@ -86,7 +86,7 @@ class urgentbdPage(GUI):  # 繼承GUI
                 controller.urgent=np.array([[]])
                 return
             #檢驗 '染單','需完成下染量','重切交期' 數據是否有缺少
-            inds = [list(head).index(ch) for ch in ('染單','需完成下染量','重切交期')]
+            inds = [list(head).index(ch) for ch in ('染單','重切交期')]
             for grid in urgent[:,inds].flatten():
                 if not dB.isdata(grid):
                     tk.messagebox.showerror(title='錯誤', message='必要欄位有空白，請補充資料後重新匯入')
@@ -95,9 +95,9 @@ class urgentbdPage(GUI):  # 繼承GUI
                     controller.urgent=np.array([[]])
                     return
             #檢驗交其是否符合日期格式
-            for i,grid in enumerate(urgent[:,inds[2]]):
+            for i,grid in enumerate(urgent[:,inds[1]]):
                 try:
-                    urgent[i,inds[2]] = datetime.combine(grid,time())
+                    urgent[i,inds[1]] = datetime.combine(grid,time())
                 except:
                     tk.messagebox.showerror(title='錯誤', message='重切交期數據格式不符,採用格式 year/month/day')
                     Label2['fg'] = '#FF0000'

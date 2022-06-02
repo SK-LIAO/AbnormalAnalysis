@@ -95,9 +95,14 @@ def renewUrgent(data,head,path):
 
         #蒐集同KA的所有工卡
         Ocs = [s for s in Edata if s[Eheaddict['染單']]==KA]
-        #補上下染量
-        a = data[list(data[:,1]).index(KA),7] 
+        #補上下染量,若需完成下染量為空則將下染量也補入需下染量
+        try: 
+            a = data[list(data[:,1]).index(KA),7]
+        except:
+            continue    
         st1.cells[row,KAheaddict['下染量']].value = a
+        if not st1.cells[row,KAheaddict['需完成下染量']].value:
+            st1.cells[row,KAheaddict['需完成下染量']].value = a
         #計算良品入倉總量
         m1 = sum([s[Eheaddict['包裝良品量']] for s in Ocs if isdata(s[Eheaddict['包裝良品量']])])
         #計算已開卡未結案量(正在染整廠加工的量)
